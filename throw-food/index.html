@@ -1,0 +1,425 @@
+<title>Throw Food For Animals</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&display=swap">
+<style>
+/* Layout: chunky Roblox-style toy UI — HUD strip, side-scrolling world canvas with throw meter under it, shop/pen/gym panel beside (stacks on phones). Single sunny-day theme by design. */
+:root{
+  --sky:#5bb8f0; --sky-deep:#2f86c9; --ink:#17283a; --ink-soft:#4b6178;
+  --panel:#f3f8fc; --panel-2:#e2edf6; --line:#bcd2e4;
+  --go:#2fbf5b; --go-dark:#1d8a3e; --sun:#ffc634; --sun-dark:#d89a00;
+  --danger:#ef5a4f; --danger-dark:#b5372e;
+  --common:#8a9bad; --rare:#3d8bfd; --legend:#f29b19;
+  --display:"Fredoka","Nunito",system-ui,sans-serif;
+  --body:"Nunito",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+html{background:var(--sky-deep)}
+body{margin:0;background:var(--sky-deep) linear-gradient(180deg,var(--sky) 0%,var(--sky-deep) 900px) no-repeat;color:var(--ink);font-family:var(--body);font-size:15px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 28px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,38px);margin:0;color:#fff;letter-spacing:.5px;
+  text-shadow:0 3px 0 var(--ink),2px 0 0 var(--ink),-2px 0 0 var(--ink),0 -2px 0 var(--ink);text-wrap:balance}
+.top{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--panel);border:3px solid var(--ink);border-radius:12px;padding:5px 12px;font-family:var(--display);font-weight:600;font-size:16px;
+  display:flex;gap:7px;align-items:baseline;box-shadow:0 4px 0 var(--ink);font-variant-numeric:tabular-nums}
+.chip small{font-family:var(--body);font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.chip.coins b{color:#a26b00}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:14px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--panel);border:3px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink);overflow:hidden;min-width:0}
+canvas{display:block;width:100%;height:clamp(260px,46vw,460px);background:#bfe9ff;touch-action:manipulation}
+.controls{display:flex;gap:12px;align-items:center;padding:12px;border-top:3px solid var(--ink);flex-wrap:wrap}
+.meter{flex:1 1 260px;min-width:0}
+.meter-label{display:flex;justify-content:space-between;font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:5px}
+.bar{position:relative;height:30px;border:3px solid var(--ink);border-radius:10px;overflow:hidden;
+  background:linear-gradient(90deg,#ef5a4f 0%,#f5a23a 45%,#ffd84a 75%,#7ad35a 92%,#2fbf5b 95%,#2fbf5b 100%)}
+.ticks{position:absolute;inset:0;display:flex;justify-content:space-between;padding:0 2px;pointer-events:none}
+.ticks i{width:2px;background:rgba(23,40,58,.25)}
+.needle{position:absolute;top:-3px;bottom:-3px;width:6px;margin-left:-3px;background:var(--ink);border-radius:3px;box-shadow:0 0 0 2px #fff}
+.btn{font-family:var(--display);font-weight:700;font-size:18px;border:3px solid var(--ink);border-radius:14px;padding:10px 18px;cursor:pointer;color:#fff;
+  background:var(--go);box-shadow:0 5px 0 var(--go-dark),0 5px 0 3px var(--ink);transition:transform .05s;letter-spacing:.3px}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 var(--go-dark),0 1px 0 3px var(--ink)}
+.btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
+.btn[disabled]{background:#9db0c0;box-shadow:0 5px 0 #73879a,0 5px 0 3px var(--ink);cursor:not-allowed}
+.btn.big{font-size:24px;padding:12px 30px;min-width:150px}
+@media (max-width:520px){.controls .btn.big{flex:1 1 100%}}
+.btn.sun{background:var(--sun);color:var(--ink);box-shadow:0 5px 0 var(--sun-dark),0 5px 0 3px var(--ink)}
+.btn.red{background:var(--danger);box-shadow:0 5px 0 var(--danger-dark),0 5px 0 3px var(--ink)}
+.btn.sm{font-size:14px;padding:6px 12px;border-radius:10px;box-shadow:0 3px 0 var(--go-dark),0 3px 0 3px var(--ink)}
+.btn.sm.sun{box-shadow:0 3px 0 var(--sun-dark),0 3px 0 3px var(--ink)}
+.btn.sm.red{box-shadow:0 3px 0 var(--danger-dark),0 3px 0 3px var(--ink)}
+.btn.sm[disabled]{box-shadow:0 3px 0 #73879a,0 3px 0 3px var(--ink)}
+.side{background:var(--panel);border:3px solid var(--ink);border-radius:18px;box-shadow:0 6px 0 var(--ink);min-width:0;display:flex;flex-direction:column}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:3px solid var(--ink)}
+.tab{font-family:var(--display);font-weight:600;font-size:16px;background:var(--panel-2);border:0;border-right:3px solid var(--ink);padding:10px 4px;cursor:pointer;color:var(--ink-soft)}
+.tab:last-child{border-right:0}
+.tab[aria-selected="true"]{background:var(--panel);color:var(--ink)}
+.tab:first-child{border-top-left-radius:15px}.tab:last-child{border-top-right-radius:15px}
+.pane{padding:12px;display:flex;flex-direction:column;gap:10px;max-height:560px;overflow:auto}
+.sec{font-weight:800;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px}
+.item{display:grid;grid-template-columns:42px minmax(0,1fr) auto;gap:10px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:12px;padding:8px 10px}
+.item.on{border-color:var(--go);background:#ecfbef}
+.ico{font-size:28px;line-height:1;text-align:center}
+.item b{font-family:var(--display);font-weight:600;font-size:16px;display:block}
+.item span{font-size:12.5px;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-weight:800;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:1px 7px;color:#fff;margin-left:4px;vertical-align:2px}
+.r0{background:var(--common)}.r1{background:var(--rare)}.r2{background:var(--legend)}
+.gym{display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;padding:6px 0}
+.gym .stat{font-family:var(--display);font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.gym p{margin:0;color:var(--ink-soft);max-width:36ch}
+.empty{color:var(--ink-soft);text-align:center;padding:18px 8px;background:#fff;border:2px dashed var(--line);border-radius:12px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:#fff;font-family:var(--display);font-weight:600;
+  padding:10px 18px;border-radius:12px;box-shadow:0 4px 0 rgba(0,0,0,.25);max-width:calc(100% - 32px);text-align:center;z-index:20}
+.help{color:#eaf5ff;font-size:13px;text-align:center}
+.help kbd{background:#fff;color:var(--ink);border-radius:5px;padding:0 6px;font-family:var(--body);font-weight:800;border-bottom:2px solid var(--ink-soft)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="top">
+    <h1>Throw Food For Animals</h1>
+    <div class="hud">
+      <div class="chip coins"><small>Coins</small><b id="hudCoins">0</b></div>
+      <div class="chip"><small>Income</small><span id="hudInc">0/s</span></div>
+      <div class="chip"><small>Power</small><span id="hudPow">1.0</span></div>
+      <div class="chip"><small>Pen</small><span id="hudPen">0/6</span></div>
+      <div class="chip"><small>Best</small><span id="hudBest">0 m</span></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="stage">
+      <canvas id="world" aria-label="Game world: your pen, your avatar and 15 zones of animals"></canvas>
+      <div class="controls">
+        <div class="meter">
+          <div class="meter-label"><span>Throw meter</span><span id="meterVal">0 / 20</span></div>
+          <div class="bar" id="bar"><div class="ticks"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="needle" id="needle"></div></div>
+        </div>
+        <button class="btn big" id="throwBtn">THROW</button>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="tab-shop" aria-selected="true">Shop</button>
+        <button class="tab" role="tab" id="tab-pen" aria-selected="false">Pen</button>
+        <button class="tab" role="tab" id="tab-gym" aria-selected="false">Gym</button>
+      </div>
+      <div class="pane" id="pane"></div>
+    </div>
+  </div>
+  <div class="help">Stop the needle near <b>20</b> for a PERFECT throw. <kbd>Space</kbd> throw · <kbd>T</kbd> pull-up · Train in the Gym to throw farther and reach rarer zones.</div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(()=>{
+const EMOJI='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+const ZONES=[
+ ['Meadow','#79c95a','#bfe9ff',[['🐔','Chicken'],['🐰','Bunny'],['🦔','Hedgehog']]],
+ ['Farm','#9ccc55','#c6ebff',[['🐷','Pig'],['🐄','Cow'],['🐴','Horse']]],
+ ['Forest','#4c9a48','#b3def3',[['🦊','Fox'],['🦌','Deer'],['🦉','Owl']]],
+ ['Lake','#5cb478','#a7dbf6',[['🦆','Duck'],['🐸','Frog'],['🦫','Beaver']]],
+ ['Hills','#8dbf68','#bde1f1',[['🐐','Goat'],['🐏','Ram'],['🦙','Llama']]],
+ ['Savanna','#d4b558','#ffe0a6',[['🦓','Zebra'],['🦒','Giraffe'],['🦁','Lion']]],
+ ['Jungle','#2e8c4c','#a4e1c2',[['🐒','Monkey'],['🦜','Parrot'],['🐅','Tiger']]],
+ ['Desert','#e6c473','#ffd79e',[['🦎','Lizard'],['🐪','Camel'],['🦂','Scorpion King']]],
+ ['Swamp','#6d8c48','#c2d4ae',[['🐢','Turtle'],['🐊','Crocodile'],['🦩','Flamingo']]],
+ ['Tundra','#e3eef4','#d4e6f4',[['🐧','Penguin'],['🦭','Seal'],['🐻‍❄️','Polar Bear']]],
+ ['Peaks','#98a6b3','#c7d8ea',[['🦅','Eagle'],['🦬','Bison'],['🐆','Snow Leopard']]],
+ ['Coast','#efd998','#a6e3ff',[['🦀','Crab'],['🐙','Octopus'],['🐬','Dolphin']]],
+ ['Volcano','#5b3b3a','#f0a07a',[['🦕','Bronto'],['🦖','T-Rex'],['🐉','Fire Dragon']]],
+ ['Candy Land','#f3a2c6','#ffd5eb',[['🐑','Cotton Sheep'],['🦄','Unicorn'],['🐲','Sugar Dragon']]],
+ ['Moon','#b6b6c6','#2a2350',[['👾','Moon Critter'],['🦑','Space Squid'],['🌟','Star Beast']]],
+];
+const RAR=['Common','Rare','Legendary'];
+const FOODS=[
+ {n:'Bread',e:'🍞',cost:0,luck:1,range:1},
+ {n:'Apple',e:'🍎',cost:200,luck:1.4,range:1.03},
+ {n:'Carrot',e:'🥕',cost:2000,luck:1.9,range:1.06},
+ {n:'Corn',e:'🌽',cost:15000,luck:2.6,range:1.1},
+ {n:'Fish',e:'🐟',cost:120000,luck:3.5,range:1.14},
+ {n:'Cake',e:'🍰',cost:1e6,luck:4.8,range:1.18},
+ {n:'Honey Pot',e:'🍯',cost:8e6,luck:6.5,range:1.22},
+ {n:'Watermelon',e:'🍉',cost:6e7,luck:9,range:1.28},
+];
+const BARS=[
+ {n:'Wooden Bar',e:'🪵',cost:0,mult:1},
+ {n:'Steel Bar',e:'🔩',cost:800,mult:2},
+ {n:'Gold Bar',e:'🥇',cost:25000,mult:5},
+ {n:'Diamond Bar',e:'💎',cost:9e5,mult:12},
+ {n:'Cosmic Bar',e:'🌌',cost:3e7,mult:30},
+];
+const ZONE_M=100, WORLD_M=ZONE_M*ZONES.length, PLAYER_X=34, PEN_X0=3, PEN_X1=27;
+const inc=(z,r)=>[1,5,25][r]*Math.pow(z+1,1.7);
+const penCap=l=>6+3*l, penCost=l=>Math.round(150*Math.pow(2.3,l));
+const fmt=n=>{n=Math.floor(n);if(n<1000)return String(n);const u=['K','M','B','T','Qa'];let i=-1;while(n>=1000&&i<u.length-1){n/=1000;i++}return (n<10?n.toFixed(2):n<100?n.toFixed(1):n.toFixed(0))+u[i]};
+
+const fresh=()=>({coins:0,power:1,food:0,foodsOwned:[0],bar:0,barsOwned:[0],penLvl:0,pen:[],best:0,seen:{},saved:Date.now()});
+let S=fresh();
+function load(d){ if(d&&d.coins!=null){S=Object.assign(fresh(),d);return true} try{const j=localStorage.getItem('tffa-save');if(j){S=Object.assign(fresh(),JSON.parse(j));return true}}catch(e){} return false }
+function save(){ S.saved=Date.now(); try{localStorage.setItem('tffa-save',JSON.stringify(S))}catch(e){} }
+const income=()=>S.pen.reduce((a,p)=>a+inc(p.z,p.r),0);
+
+/* ---------- DOM ---------- */
+const $=id=>document.getElementById(id);
+const cv=$('world'), ctx=cv.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(2,window.devicePixelRatio||1);const r=cv.getBoundingClientRect();W=r.width;H=r.height;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+window.addEventListener('resize',resize);
+let toastT=0;
+function toast(msg){const t=$('toast');t.textContent=msg;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2600)}
+
+/* ---------- game state machine ---------- */
+let phase='idle', meterT=0, meterV=0, throwData=null, cam=-4, camTarget=-4, particles=[], popups=[], liftT=0;
+const ppm=()=>Math.max(5,Math.min(11,W/90)); // pixels per metre
+const groundY=()=>H-46;
+
+function doThrow(){
+  if(phase!=='idle')return;
+  const v=meterV, perfect=v>=19, great=v>=15;
+  const f=FOODS[S.food];
+  let d=(v/20)*S.power*ZONE_M*f.range*(perfect?1.15:1);
+  d=Math.max(3,Math.min(WORLD_M-2,d));
+  const T=0.9+Math.min(1.6,d/260);
+  throwData={d,t:0,T,v,perfect,great,food:f,animal:null};
+  phase='flying';
+  popups.push({x:PLAYER_X,y:6,text:perfect?'PERFECT!':great?'GREAT!':v.toFixed(1)+' / 20',c:perfect?'#2fbf5b':great?'#ffc634':'#fff',t:0});
+  $('throwBtn').disabled=true;
+}
+function rollAnimal(z,luck){
+  const w=[70,25*luck,5*Math.pow(luck,1.5)], tot=w[0]+w[1]+w[2];
+  let x=Math.random()*tot, r=0; if(x>w[0]){r=1; if(x>w[0]+w[1]) r=2}
+  return {z,r,e:ZONES[z][3][r][0],n:ZONES[z][3][r][1]};
+}
+function land(){
+  const td=throwData, z=Math.min(ZONES.length-1,Math.floor(td.d/ZONE_M));
+  if(td.d>S.best){S.best=td.d}
+  const luck=td.food.luck*(td.perfect?1.25:1);
+  const a=rollAnimal(z,luck);
+  const viewM=W/ppm();
+  td.animal={...a,x:td.d+viewM*0.6,tx:td.d+1.2};
+  td.zone=z; phase='approach';
+  for(let i=0;i<14;i++)particles.push({x:td.d,y:0,vx:(Math.random()-.5)*8,vy:Math.random()*6+2,life:.7});
+}
+function catchIt(){
+  const a=throwData.animal;
+  const key=a.z+'-'+a.r, isNew=!S.seen[key]; S.seen[key]=1;
+  if(S.pen.length>=penCap(S.penLvl)){
+    popups.push({x:a.x,y:5,text:'Pen full!',c:'#ef5a4f',t:0});
+    toast(`${a.n} wandered off. Your pen is full: sell animals or upgrade the pen.`);
+  }else{
+    S.pen.push({z:a.z,r:a.r,id:Date.now()+Math.random(),wx:PEN_X0+2+Math.random()*(PEN_X1-PEN_X0-4),dir:Math.random()<.5?-1:1});
+    popups.push({x:a.x,y:5,text:`+ ${a.n}`,c:['#fff','#9cc7ff','#ffcf5e'][a.r],t:0});
+    toast(`${isNew?'New! ':''}Caught a ${RAR[a.r]} ${a.n} from the ${ZONES[a.z][0]} (+${fmt(inc(a.z,a.r))}/s)`);
+  }
+  phase='return'; save(); render();
+}
+
+/* ---------- drawing ---------- */
+function zoneAt(m){return ZONES[Math.max(0,Math.min(ZONES.length-1,Math.floor(m/ZONE_M)))]}
+function sx(m){return (m-cam)*ppm()}
+function drawWorld(dt){
+  const p=ppm(), gy=groundY(), viewM=W/p;
+  // sky blended across visible zones
+  const g=ctx.createLinearGradient(0,0,W,0);
+  for(let i=0;i<=4;i++){const m=cam+viewM*i/4;g.addColorStop(i/4,zoneAt(Math.max(0,m))[2])}
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // sun
+  ctx.fillStyle='rgba(255,236,150,.9)';ctx.beginPath();ctx.arc(W-60,50,26,0,7);ctx.fill();
+  // clouds (parallax)
+  ctx.fillStyle='rgba(255,255,255,.8)';
+  for(let i=0;i<8;i++){const cx=((i*260-cam*p*0.3)%(W+300)+W+300)%(W+300)-150,cy=40+(i%3)*28;
+    ctx.beginPath();ctx.arc(cx,cy,18,0,7);ctx.arc(cx+20,cy-8,22,0,7);ctx.arc(cx+44,cy,17,0,7);ctx.fill()}
+  // ground per zone
+  const z0=Math.max(0,Math.floor(cam/ZONE_M)), z1=Math.min(ZONES.length-1,Math.floor((cam+viewM)/ZONE_M));
+  ctx.fillStyle=ZONES[0][1];ctx.fillRect(0,gy,Math.max(0,sx(0)),H-gy);
+  for(let z=z0;z<=z1;z++){
+    const x0=sx(z*ZONE_M),x1=sx((z+1)*ZONE_M);
+    ctx.fillStyle=ZONES[z][1];ctx.fillRect(x0,gy,x1-x0+1,H-gy);
+    ctx.fillStyle='rgba(0,0,0,.12)';ctx.fillRect(x0,gy,x1-x0+1,5);
+    // zone sign
+    if(z>0){const sxp=x0+10;
+      ctx.fillStyle='#7a5230';ctx.fillRect(sxp+18,gy-34,5,34);
+      ctx.fillStyle='#fff';ctx.strokeStyle='#17283a';ctx.lineWidth=3;
+      const label=`${z+1}. ${ZONES[z][0]}`;ctx.font='600 14px Fredoka, sans-serif';const tw=ctx.measureText(label).width;
+      roundRect(sxp,gy-58,tw+18,24,6);ctx.fill();ctx.stroke();ctx.fillStyle='#17283a';ctx.fillText(label,sxp+9,gy-41)}
+    // scenery
+    ctx.font=`22px ${EMOJI}`;
+    const deco=['🌼','🌾','🌲','🪷','🌳','🌵','🌴','🌵','🌿','❄️','🪨','🐚','🌋','🍭','🪐'][z];
+    for(let k=1;k<5;k++){ctx.fillText(deco,sx(z*ZONE_M+k*21+7),gy-2)}
+  }
+  // distance markers
+  ctx.font='700 11px Nunito, sans-serif';ctx.fillStyle='rgba(23,40,58,.55)';
+  for(let m=Math.ceil(cam/25)*25;m<cam+viewM;m+=25){if(m<=0)continue;ctx.fillText(m+'m',sx(m)-10,H-14)}
+  // best marker
+  if(S.best>0){const bx=sx(S.best);ctx.fillStyle='#ef5a4f';ctx.fillRect(bx-1,gy-70,3,70);ctx.font='700 11px Nunito, sans-serif';ctx.fillText('BEST',bx-14,gy-74)}
+  // pen
+  drawPen(dt);
+  drawPlayer();
+  // food in flight
+  const td=throwData;
+  if(td&&phase==='flying'){
+    const s=td.t/td.T, hM=Math.min(14,4+td.d*0.12);
+    const xm=PLAYER_X+(td.d-PLAYER_X)*s, ym=2.2+(4*hM*s*(1-s))-2.2*s;
+    ctx.save();ctx.translate(sx(xm),gy-ym*p);ctx.rotate(td.t*9);ctx.font=`28px ${EMOJI}`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(td.food.e,0,0);ctx.restore();
+  }
+  if(td&&(phase==='approach'||phase==='eat'||phase==='return')){
+    ctx.font=`26px ${EMOJI}`;ctx.textAlign='center';ctx.fillText(td.food.e,sx(td.d),gy-4);
+    const a=td.animal;
+    if(a&&phase!=='return'){ctx.font=`${40+a.r*6}px ${EMOJI}`;ctx.save();ctx.translate(sx(a.x),gy-2+Math.sin(a.x*3)*2);ctx.scale(-1,1);ctx.fillText(a.e,0,0);ctx.restore();
+      if(a.r>0){ctx.font='800 11px Nunito, sans-serif';ctx.fillStyle=a.r==2?'#f29b19':'#3d8bfd';ctx.fillText(RAR[a.r].toUpperCase(),sx(a.x),gy-58-a.r*6)}}
+    ctx.textAlign='left';
+  }
+  // particles
+  for(const q of particles){q.life-=dt;q.vy-=20*dt;q.x+=q.vx*dt;q.y=Math.max(0,q.y+q.vy*dt);
+    ctx.fillStyle=`rgba(120,90,60,${Math.max(0,q.life)})`;ctx.beginPath();ctx.arc(sx(q.x),gy-q.y*p,3,0,7);ctx.fill()}
+  particles=particles.filter(q=>q.life>0);
+  // popups
+  ctx.textAlign='center';
+  for(const u of popups){u.t+=dt;const a=Math.max(0,1-u.t/1.6);ctx.globalAlpha=a;ctx.font='700 22px Fredoka, sans-serif';
+    ctx.lineWidth=5;ctx.strokeStyle='#17283a';const y=gy-(u.y+u.t*4)*p;ctx.strokeText(u.text,sx(u.x),y);ctx.fillStyle=u.c;ctx.fillText(u.text,sx(u.x),y)}
+  ctx.globalAlpha=1;ctx.textAlign='left';popups=popups.filter(u=>u.t<1.6);
+  // zone banner
+  const zc=zoneAt(Math.max(0,cam+viewM*.5));ctx.font='600 13px Fredoka, sans-serif';ctx.fillStyle='rgba(23,40,58,.7)';
+  ctx.fillText(phase==='idle'?'Your base':`Zone: ${zc[0]}`,12,22);
+}
+function roundRect(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function drawPen(dt){
+  const p=ppm(), gy=groundY(), x0=sx(PEN_X0), x1=sx(PEN_X1);
+  ctx.fillStyle='rgba(170,120,60,.25)';ctx.fillRect(x0,gy-2,x1-x0,6);
+  ctx.strokeStyle='#8b5a2b';ctx.lineWidth=4;
+  for(let m=PEN_X0;m<=PEN_X1;m+=3){ctx.beginPath();ctx.moveTo(sx(m),gy);ctx.lineTo(sx(m),gy-26);ctx.stroke()}
+  ctx.beginPath();ctx.moveTo(x0,gy-20);ctx.lineTo(x1,gy-20);ctx.moveTo(x0,gy-9);ctx.lineTo(x1,gy-9);ctx.stroke();
+  ctx.font='700 11px Nunito, sans-serif';ctx.fillStyle='#5b3a1a';ctx.fillText(`PEN ${S.pen.length}/${penCap(S.penLvl)}`,x0,gy-30);
+  const shown=S.pen.slice(-18);
+  ctx.textAlign='center';
+  shown.forEach((a,i)=>{
+    a.wx=(a.wx??PEN_X0+5)+(a.dir||1)*dt*(1.2+(i%3)*.4);
+    if(a.wx>PEN_X1-2){a.dir=-1}if(a.wx<PEN_X0+2){a.dir=1}
+    const e=ZONES[a.z][3][a.r][0];ctx.font=`${22+a.r*4}px ${EMOJI}`;
+    ctx.save();ctx.translate(sx(a.wx),gy-4-(i%2)*3);if(a.dir>0)ctx.scale(-1,1);ctx.fillText(e,0,0);ctx.restore();
+  });
+  ctx.textAlign='left';
+}
+function drawPlayer(){
+  const p=ppm(), gy=groundY(), x=sx(PLAYER_X), s=p/9;
+  const throwing=phase==='flying'&&throwData.t<0.25, lift=liftT>0;
+  ctx.save();ctx.translate(x,gy);ctx.scale(s,s);ctx.lineWidth=3;ctx.strokeStyle='#17283a';
+  // legs
+  ctx.fillStyle='#2f8f4e';ctx.fillRect(-11,-30,9,30);ctx.fillRect(2,-30,9,30);ctx.strokeRect(-11,-30,9,30);ctx.strokeRect(2,-30,9,30);
+  // torso
+  ctx.fillStyle='#3d8bfd';ctx.fillRect(-14,-62,28,32);ctx.strokeRect(-14,-62,28,32);
+  // arms
+  ctx.fillStyle='#ffcf3a';
+  const armUp=throwing||lift;
+  ctx.save();ctx.translate(14,-60);ctx.rotate(armUp?-2.4:0.15);ctx.fillRect(0,-4,9,28);ctx.strokeRect(0,-4,9,28);ctx.restore();
+  ctx.save();ctx.translate(-14,-60);ctx.rotate(lift?2.4:-0.15);ctx.fillRect(-9,-4,9,28);ctx.strokeRect(-9,-4,9,28);ctx.restore();
+  // head
+  ctx.fillRect(-11,-86,22,22);ctx.strokeRect(-11,-86,22,22);
+  ctx.fillStyle='#17283a';ctx.fillRect(-6,-79,3,4);ctx.fillRect(3,-79,3,4);ctx.beginPath();ctx.arc(0,-72,4,0,Math.PI);ctx.stroke();
+  // held food while idle
+  if(phase==='idle'){ctx.font=`18px ${EMOJI}`;ctx.fillText(FOODS[S.food].e,18,-36)}
+  ctx.restore();
+}
+
+/* ---------- loop ---------- */
+let last=performance.now(), saveAcc=0, uiAcc=0;
+function frame(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  S.coins+=income()*dt; saveAcc+=dt; uiAcc+=dt;
+  if(liftT>0)liftT-=dt;
+  if(phase==='idle'){meterT+=dt;const c=(meterT%1.5)/1.5;meterV=20*(c<.5?c*2:2-c*2);camTarget=-4}
+  const td=throwData, viewM=W/ppm();
+  if(phase==='flying'){td.t+=dt;const s=Math.min(1,td.t/td.T);camTarget=Math.max(-4,PLAYER_X+(td.d-PLAYER_X)*s-viewM*.45);if(td.t>=td.T)land()}
+  else if(phase==='approach'){const a=td.animal;a.x-=dt*(14+viewM*.25);camTarget=Math.max(-4,td.d-viewM*.45);if(a.x<=a.tx){a.x=a.tx;phase='eat';td.eatT=0}}
+  else if(phase==='eat'){td.eatT+=dt;if(td.eatT>.7)catchIt()}
+  else if(phase==='return'){camTarget=-4;if(Math.abs(cam-camTarget)<1.5){phase='idle';throwData=null;$('throwBtn').disabled=false}}
+  const k=phase==='return'?3.2:6;cam+=(camTarget-cam)*Math.min(1,dt*k);
+  if(phase==='return'&&Math.abs(cam-camTarget)>viewM*3)cam+=(camTarget-cam)*Math.min(1,dt*3);
+  drawWorld(dt);
+  $('needle').style.left=(meterV/20*100)+'%';$('meterVal').textContent=meterV.toFixed(1)+' / 20';
+  if(uiAcc>.2){uiAcc=0;hud();if(tab==='shop'||tab==='gym')refreshButtons()}
+  if(saveAcc>5){saveAcc=0;save()}
+  requestAnimationFrame(frame);
+}
+function hud(){
+  $('hudCoins').textContent=fmt(S.coins);$('hudInc').textContent=fmt(income())+'/s';
+  $('hudPow').textContent=S.power.toFixed(1);$('hudPen').textContent=`${S.pen.length}/${penCap(S.penLvl)}`;$('hudBest').textContent=Math.floor(S.best)+' m';
+}
+
+/* ---------- panels ---------- */
+let tab='shop';
+function setTab(t){tab=t;['shop','pen','gym'].forEach(x=>$('tab-'+x).setAttribute('aria-selected',x===t));render()}
+['shop','pen','gym'].forEach(x=>$('tab-'+x).onclick=()=>setTab(x));
+function render(){
+  const P=$('pane');let h='';
+  if(tab==='shop'){
+    h+='<div class="sec">Food · better food attracts rarer animals</div>';
+    FOODS.forEach((f,i)=>{const own=S.foodsOwned.includes(i),on=S.food===i;
+      h+=`<div class="item ${on?'on':''}"><div class="ico">${f.e}</div><div><b>${f.n}</b><span>Luck ×${f.luck} · Range ×${f.range}</span></div>
+      ${on?'<button class="btn sm" disabled>Equipped</button>':own?`<button class="btn sm" data-equip="${i}">Equip</button>`:`<button class="btn sm sun" data-buyfood="${i}" data-cost="${f.cost}">${fmt(f.cost)}</button>`}</div>`});
+    h+='<div class="sec">Pen</div>';
+    h+=`<div class="item"><div class="ico">🏡</div><div><b>Bigger pen</b><span>${penCap(S.penLvl)} → ${penCap(S.penLvl+1)} animals</span></div><button class="btn sm sun" data-pen="1" data-cost="${penCost(S.penLvl)}">${fmt(penCost(S.penLvl))}</button></div>`;
+    h+='<div class="sec">Pull-up bars · more power per rep</div>';
+    BARS.forEach((b,i)=>{const own=S.barsOwned.includes(i),on=S.bar===i;
+      h+=`<div class="item ${on?'on':''}"><div class="ico">${b.e}</div><div><b>${b.n}</b><span>+${(0.05*b.mult).toFixed(2)} power per pull-up</span></div>
+      ${on?'<button class="btn sm" disabled>Using</button>':own?`<button class="btn sm" data-bar="${i}">Use</button>`:`<button class="btn sm sun" data-buybar="${i}" data-cost="${b.cost}">${fmt(b.cost)}</button>`}</div>`});
+  }else if(tab==='pen'){
+    if(!S.pen.length)h+='<div class="empty">Your pen is empty. Throw food to attract your first animal.</div>';
+    else{
+      h+=`<div class="sec">${S.pen.length} animals · earning ${fmt(income())} coins/s</div>`;
+      h+=`<button class="btn sm red" data-sellcommon="1">Sell all Commons</button>`;
+      [...S.pen].sort((a,b)=>inc(b.z,b.r)-inc(a.z,a.r)).forEach(a=>{const z=ZONES[a.z];
+        h+=`<div class="item"><div class="ico">${z[3][a.r][0]}</div><div><b>${z[3][a.r][1]}<span class="pill r${a.r}">${RAR[a.r]}</span></b><span>${z[0]} · ${fmt(inc(a.z,a.r))}/s</span></div><button class="btn sm red" data-sell="${a.id}">Sell ${fmt(inc(a.z,a.r)*15)}</button></div>`});
+    }
+    h+='<div class="sec">Animal index</div>';
+    const n=Object.keys(S.seen).length;h+=`<div class="item"><div class="ico">📖</div><div><b>${n} / ${ZONES.length*3} found</b><span>Each zone has a Common, Rare and Legendary animal</span></div><span></span></div>`;
+  }else{
+    const g=0.05*BARS[S.bar].mult;
+    h+=`<div class="gym"><div class="ico" style="font-size:54px">${BARS[S.bar].e}</div><div class="sec">Throw power</div><div class="stat" id="gymPow">${S.power.toFixed(2)}</div>
+      <button class="btn big sun" id="pullBtn">PULL-UP +${g.toFixed(2)}</button>
+      <p>Each pull-up adds power. Power ×20 on the meter is roughly how many metres you throw with Bread, and every 100 m opens a new zone.</p>
+      <p>Next zone: <b>${ZONES[Math.min(14,Math.floor(S.best/ZONE_M)+1)][0]}</b> at ${(Math.floor(S.best/ZONE_M)+1)*ZONE_M} m</p></div>`;
+  }
+  P.innerHTML=h;refreshButtons();
+}
+function refreshButtons(){document.querySelectorAll('[data-cost]').forEach(b=>b.disabled=S.coins<+b.dataset.cost);const gp=$('gymPow');if(gp)gp.textContent=S.power.toFixed(2)}
+function pullUp(){S.power+=0.05*BARS[S.bar].mult;liftT=.25;const gp=$('gymPow');if(gp)gp.textContent=S.power.toFixed(2);hud()}
+$('pane').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b||b.disabled)return;const d=b.dataset;
+  if(b.id==='pullBtn'){pullUp();return}
+  if(d.buyfood){const f=FOODS[+d.buyfood];if(S.coins>=f.cost){S.coins-=f.cost;S.foodsOwned.push(+d.buyfood);S.food=+d.buyfood;toast(`Bought ${f.n}!`)}}
+  else if(d.equip){S.food=+d.equip}
+  else if(d.pen){const c=penCost(S.penLvl);if(S.coins>=c){S.coins-=c;S.penLvl++;toast(`Pen holds ${penCap(S.penLvl)} animals now`)}}
+  else if(d.buybar){const x=BARS[+d.buybar];if(S.coins>=x.cost){S.coins-=x.cost;S.barsOwned.push(+d.buybar);S.bar=+d.buybar;toast(`Training with the ${x.n}`)}}
+  else if(d.bar){S.bar=+d.bar}
+  else if(d.sell){const i=S.pen.findIndex(a=>String(a.id)===d.sell);if(i>=0){const a=S.pen[i];S.coins+=inc(a.z,a.r)*15;S.pen.splice(i,1)}}
+  else if(d.sellcommon){let g=0;S.pen=S.pen.filter(a=>{if(a.r===0){g+=inc(a.z,a.r)*15;return false}return true});if(g)toast(`Sold Commons for ${fmt(g)} coins`)}
+  save();hud();render();
+});
+$('throwBtn').onclick=doThrow;
+cv.addEventListener('pointerdown',doThrow);
+document.addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('input,textarea'))return;
+  if(e.code==='Space'){e.preventDefault();doThrow()}
+  else if(e.key==='t'||e.key==='T'){pullUp()}
+});
+
+/* ---------- boot ---------- */
+function start(data){
+  const had=load(data&&data.S);
+  if(had){const away=Math.min(7200,(Date.now()-S.saved)/1000);const earned=income()*away*.5;
+    if(away>60&&earned>0){S.coins+=earned;setTimeout(()=>toast(`Welcome back! Your pen earned ${fmt(earned)} coins while you were away`),400)}}
+  else{setTimeout(()=>toast('Stop the needle near 20 and press THROW!'),500)}
+  resize();hud();render();requestAnimationFrame(t=>{last=t;frame(t)});
+}
+window.addEventListener('beforeunload',save);
+window.claude?.hot?.snapshot?.(()=>({S}));
+window.claude?.hot?.ready?window.claude.hot.ready(start):start(window.claude?.hot?.data??{});
+})();
+</script>
